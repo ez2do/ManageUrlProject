@@ -1,55 +1,55 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const request = require('request');
-const cheerio = require('cheerio');
-const {Pool, Client} = require('pg');
+const { Pool } = require('pg');
+const dotenv = require('dotenv');
+const got = require('got');
+const metascraper = require('metascraper')([
+    require('metascraper-description')(),
+    require('metascraper-image')(),
+    require('metascraper-logo')(),
+    require('metascraper-publisher')(),
+    require('metascraper-title')(),
+    require('metascraper-url')()
+])
 
-var conString = "postgres://YourUserName:YourPassword@localhost:5432/YourDatabase";
+dotenv.config();
 
-var config = {
-    user: 'foo',
-    database: 'mydb',
-    password: 'password',
-    host: 'localhost',
-    port: 5432,
-}
+//connect to database
+const pool = new Pool({
+    connectionString: process.env.LOCAL_DB
+});
 
-const pool = new Pool(config);
-
-pool.query('SELECT NOW()', (err, res) => {
-    console.log(err, res);
-    pool.end();
+pool.on('connect', () => {
+    console.log('Connect to the database');
 });
 
 var app = express();
 
 app.use(bodyParser.json());
 
-app.get('/', (req, res) => {
-    res.send('Hello');
-});
-
-// app.post('/', (req, res) => {
-//     var url = req.body.url;
-//     res.send(url);
-//     request(url, (err, res, body) => {
-//         if(err) {
-//             return console.log('Error\n', err);
-//         }
-//         //console.log(res.request.uri);
-//         var $ = cheerio.load(body);
-//         console.log($('head').children('title').html());
-//     });
-// });
-
 //get all links
 app.get('/links', (req, res) => {
-
+    pool.query(
+        `SELECT * FROM url`
+    ).then((result) => {
+        res.send(result);
+    }).catch((err) => {
+        res.send('Error occurs\n', err);
+    });
 });
 
 //add new link
 app.post('/links', (req, res) => {
-
+    var targetUrl = req.body.url;
+    (async () => {
+        try {
+            const { body: html, url } = await got(targetUrl);
+            const metadata = await metascraper({ html, url })
+            res.send(metadata)
+        } catch (err) {
+            res.send({errorName: err.name, errorCode: err.code});
+        }
+    })()
 });
 
 //info about 1 link
@@ -108,5 +108,5 @@ app.delete('/collections/:collection_id/:link_id', (req, res) => {
 });
 
 app.listen(1212, () => {
-    console.log('Listening on port 3000');
+    console.log('Listening on port 1212');
 });
