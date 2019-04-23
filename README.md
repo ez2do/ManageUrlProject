@@ -1,5 +1,5 @@
 # ManageUrlProject
 
-install node, npm, dependencies
-run db_setup.js
+install node, npm, dependencies\n
+run db_setup.js\n
 run server.js
