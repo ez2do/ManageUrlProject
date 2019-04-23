@@ -12,7 +12,7 @@ pool.on('connect', () => {
 });
 
 (async () => {
-    //create collection table
+    //create collection table, add collection default
     await pool.query(
         `CREATE TABLE IF NOT EXISTS
     collection(

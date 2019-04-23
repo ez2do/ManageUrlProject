@@ -2,16 +2,6 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const { Pool } = require('pg');
 const dotenv = require('dotenv');
-const extractDomain = require('extract-domain');
-const got = require('got');
-const metascraper = require('metascraper')([
-    require('metascraper-description')(),
-    require('metascraper-image')(),
-    require('metascraper-logo')(),
-    require('metascraper-publisher')(),
-    require('metascraper-title')(),
-    require('metascraper-url')()
-]);
 const utils = require('./utils/server_utils');
 
 dotenv.config();
@@ -56,7 +46,7 @@ app.delete('/links/:id', (req, res) => {
 app.post('/links/:id/:collection_id', (req, res) => {
     var link_id = req.params.id;
     var collection_id = req.params.collection_id;
-    utils.addLinkToCollection('url_info', link_id, collection_id, res);
+    utils.updateCollectionOfALink('url_info', link_id, collection_id, res);
 });
 
 //get all collections
@@ -78,7 +68,9 @@ app.get('/collections/:id', (req, res) => {
 
 //update info of 1 collection
 app.put('/collections/:id', (req, res) => {
-
+    var id = req.params.id;
+    var new_name = req.body.name;
+    utils.updateCollection('collection', id, new_name, res);
 });
 
 //delete collection
@@ -95,7 +87,10 @@ app.get('/collections/all/:collection_id', (req, res) => {
 
 //remove 1 link from a collection by set its collection_id to 1
 app.delete('/collections/:collection_id/:link_id', (req, res) => {
-
+    var collection_id = req.params.collection_id;
+    var link_id = req.params.link_id;
+    //set collection_id to 1
+    utils.updateCollectionOfALink('url_info', link_id, 1, res);
 });
 
 app.listen(9999, () => {

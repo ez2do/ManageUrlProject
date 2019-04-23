@@ -219,14 +219,14 @@ var getAllLinksOfCollection = (table, collection_id, res) => {
     });
 };
 
-var addLinkToCollection = (url_table, link_id, collection_id, res) => {
+var updateCollectionOfALink = (url_table, link_id, collection_id, res) => {
     pool.query({
         text: `UPDATE ${url_table} SET collection_id = $1 WHERE id = $2`,
         values: [collection_id, link_id]
     }).then((result) => {
         res.send({
             success: true,
-            message: 'Add succefully'
+            message: 'Update succefully'
         })
     }).catch((err) => {
         console.log('Fail to update collection');
@@ -235,8 +235,26 @@ var addLinkToCollection = (url_table, link_id, collection_id, res) => {
             error: err
         });
     });
-}
+};
 
+var updateCollection = (collection_table, collection_id, new_name, res) => {
+    pool.query({
+        text: `UPDATE ${collection_table} SET name = $1 WHERE id = $2`,
+        values: [new_name, collection_id]
+    }).then((result) => {
+        res.send({
+            success: true,
+            result: result
+        });
+    }).catch((err) => {
+        console.log('Unable to update collection\n', err);
+        res.send({
+            success: false,
+            error: err
+        });
+    });
+};
 
-module.exports = { postLink, postCollection, getAll, getById, deleteById, getAllLinksOfCollection, addLinkToCollection };
+module.exports = { postLink, postCollection, getAll, getById, deleteById, getAllLinksOfCollection, 
+    updateCollectionOfALink, updateCollection };
 
