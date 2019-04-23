@@ -9,12 +9,12 @@ const metascraper = require('metascraper')([
 
 const got = require('got')
 
-const targetUrl = 'https://www.youtube.com/watch?v=RHkhSZN3RHI';
+const targetUrl = 'https://www.youtube.com/?gl=VN';
 
 (async () => {
     try {
-        const { body: html, url } = await got(targetUrl);
-        const metadata = await metascraper({ html, url })
+        const response = await got(targetUrl);
+        const metadata = await metascraper({ html: response.body, url: response.url })
         console.log(metadata)
     } catch(err){
         console.log(err.name);
