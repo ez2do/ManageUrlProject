@@ -10,8 +10,8 @@ const path = require('path');
 // const dotenv = require('dotenv');
 
 var certOptions = {
-    key: fs.readFileSync(path.resolve('../../server.key')),
-    cert: fs.readFileSync(path.resolve('../../server.crt'))
+    key: fs.readFileSync(path.resolve('./server.key')),
+    cert: fs.readFileSync(path.resolve('./server.crt'))
   }
 
 // dotenv.config();
