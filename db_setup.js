@@ -1,10 +1,14 @@
 const { Pool } = require('pg');
-const dotenv = require('dotenv');
+// const dotenv = require('dotenv');
 
-dotenv.config();
+// dotenv.config();
 
 const pool = new Pool({
-    connectionString: process.env.LOCAL_DB
+    user: 'postgres',
+    host: 'localhost',
+    database: 'ManageUrlProject',
+    password: 'tuananh123',
+    port: 5432
 });
 
 pool.on('connect', () => {
@@ -67,12 +71,10 @@ pool.on('connect', () => {
     //create table visit
     await pool.query(
         `CREATE TABLE IF NOT EXISTS
-    visit(
+    url_visit(
         id SERIAL NOT NULL PRIMARY KEY,
-        url VARCHAR(500) NOT NULL,
         startVisitAt DATE NOT NULL,
         endVisitAt DATE NOT NULL,
-        duration INTERVAL NOT NULL,
         uploadTraffic INTEGER,
         downloadTraffic INTEGER,
         url_id INTEGER REFERENCES url_info(id),
@@ -84,7 +86,23 @@ pool.on('connect', () => {
         console.log('Can not create "visit" table:\n', err);
     });
 
+    //create daily_domain
+    await pool.query(
+        `CREATE TABLE IF NOT EXISTS
+    daily_domain(
+        id SERIAL NOT NULL PRIMARY KEY,
+        date DATE NOT NULL,
+        visitCount INTEGER NOT NULL,
+        duration INTERVAL NOT NULL,
+        uploadTraffic INTEGER,
+        downloadTraffic INTEGER,
+        domain_id INTEGER REFERENCES domain_info(id)
+    )`
+    ).then((res) => {
+        console.log('Create "daily_domain" table successfully');
+    }).catch((err) => {
+        console.log('Can not create "daily_domain" table:\n', err);
+    });
+
     await pool.end();
 })()
-
-

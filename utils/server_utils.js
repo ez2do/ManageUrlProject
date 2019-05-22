@@ -14,7 +14,11 @@ const metascraper = require('metascraper')([
 dotenv.config();
 
 const pool = new Pool({
-    connectionString: process.env.LOCAL_DB
+    user: 'postgres',
+    host: 'localhost',
+    database: 'ManageUrlProject',
+    password: 'tuananh123',
+    port: 5432
 });
 
 var postLink = async (targetUrl, domain_table, url_table, res) => {
@@ -257,4 +261,3 @@ var updateCollection = (collection_table, collection_id, new_name, res) => {
 
 module.exports = { postLink, postCollection, getAll, getById, deleteById, getAllLinksOfCollection, 
     updateCollectionOfALink, updateCollection };
-

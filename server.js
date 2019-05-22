@@ -1,14 +1,28 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const { Pool } = require('pg');
-const dotenv = require('dotenv');
+const https = require('https');
 const utils = require('./utils/server_utils');
+const cors = require('cors');
+const moment = require('moment');
+const fs = require('fs');
+const path = require('path');
+// const dotenv = require('dotenv');
 
-dotenv.config();
+var certOptions = {
+    key: fs.readFileSync(path.resolve('../../server.key')),
+    cert: fs.readFileSync(path.resolve('../../server.crt'))
+  }
+
+// dotenv.config();
 
 //connect to database
 const pool = new Pool({
-    connectionString: process.env.LOCAL_DB
+    user: 'postgres',
+    host: 'localhost',
+    database: 'ManageUrlProject',
+    password: 'tuananh123',
+    port: 5432
 });
 
 pool.on('connect', () => {
@@ -18,6 +32,14 @@ pool.on('connect', () => {
 var app = express();
 
 app.use(bodyParser.json());
+app.use(cors());
+
+//de day cho do trong trang chu
+app.get('/', (req, res) => {
+    console.log('fail');
+    res.send('fail');
+    //utils.getAll('url_info', res);
+});
 
 //get all links
 app.get('/links', (req, res) => {
@@ -93,6 +115,83 @@ app.delete('/collections/:collection_id/:link_id', (req, res) => {
     utils.updateCollectionOfALink('url_info', link_id, 1, res);
 });
 
-app.listen(9999, () => {
-    console.log('Listening on port 9999');
+//get all daily domains in 1 day
+app.get('/daily_domains/:date', (req, res) => {
+    //form of date: 'yyyy-mm-dd'
+    var date = moment(req.params.date, 'YYYY-MM-DD HH:mm:ss');
+    if(!date.isValid()){
+        return res.send({
+            success: false,
+            message: 'Date param is not valid'
+        });
+    }
+    console.log(date);
+    pool.query({
+        text: `SELECT * FROM daily_domain WHERE DATE_TRUNC('day', date) = $1`,
+        values: [date]
+    }).then((result) => {
+        if (result.rowCount == 0) {
+            console.log('There is no domain today');
+            res.send({
+                success: false,
+                message: 'There is no domain today'
+            });
+        } else {
+            res.send({
+                success: true,
+                rowCount: result.rowCount,
+                rows: result.rows
+            });
+        }
+    }).catch((err) => {
+        console.log('Catch an error\n', err);
+        res.send({
+            success: false,
+            error: err
+        });
+    });
 });
+
+app.post('/daily_domains', (req, res) => {
+    var domain = req.body.domain;
+    //get domain id
+    pool.query({
+        text: `SELECT id FROM domain_info WHERE name = $1`,
+        values: [domain.name]
+    }).then((result) => {
+        if (result.rowCount == 0) {
+            console.log('There is no such domain');
+            res.send({
+                success: false,
+                message: 'There is no such domain, it must be insert when inserting url'
+            })
+        } else {
+            console.log('result format:', result);
+            pool.query({
+                text: `INSERT INTO daily_domain(date, visitCount, duration, domain_id)
+                            VALUES($1, $2, $3, $4)`,
+                values: [domain.date, domain.visit, domain.duration, result.rows[0].id]
+            })
+            res.send({
+                success: true,
+                message: 'insert successfully',
+                rowCount: result.rowCount,
+                rows: result.rows
+            });
+        }
+    }).catch((err) => {
+        console.log('Catch an error\n', err);
+        res.send({
+            success: false,
+            error: err
+        });
+    });
+})
+
+// app.listen(9999, () => {
+//     console.log('Listening on port 9999');
+// });
+
+var server = https.createServer(certOptions, app, () => {
+    console.log('Listening on port 9999');
+}).listen(9999);
