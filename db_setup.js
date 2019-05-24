@@ -73,12 +73,11 @@ pool.on('connect', () => {
         `CREATE TABLE IF NOT EXISTS
     url_visit(
         id SERIAL NOT NULL PRIMARY KEY,
-        startVisitAt DATE NOT NULL,
-        endVisitAt DATE NOT NULL,
+        name VARCHAR(300) NOT NULL,
+        startVisitAt TIMESTAMP NOT NULL,
+        endVisitAt TIMESTAMP NOT NULL,
         uploadTraffic INTEGER,
-        downloadTraffic INTEGER,
-        url_id INTEGER REFERENCES url_info(id),
-        domain_id INTEGER REFERENCES domain_info(id)
+        downloadTraffic INTEGER
     )  `
     ).then((res) => {
         console.log('Create "visit" table successfully');

@@ -12,7 +12,7 @@ const path = require('path');
 var certOptions = {
     key: fs.readFileSync(path.resolve('./server.key')),
     cert: fs.readFileSync(path.resolve('./server.crt'))
-  }
+}
 
 // dotenv.config();
 
@@ -119,7 +119,7 @@ app.delete('/collections/:collection_id/:link_id', (req, res) => {
 app.get('/daily_domains/:date', (req, res) => {
     //form of date: 'yyyy-mm-dd'
     var date = moment(req.params.date, 'YYYY-MM-DD HH:mm:ss');
-    if(!date.isValid()){
+    if (!date.isValid()) {
         return res.send({
             success: false,
             message: 'Date param is not valid'
@@ -171,7 +171,7 @@ app.post('/daily_domains', (req, res) => {
                 text: `INSERT INTO daily_domain(date, visitCount, duration, domain_id)
                             VALUES($1, $2, $3, $4)`,
                 values: [domain.date, domain.visit, domain.duration, result.rows[0].id]
-            })
+            });
             res.send({
                 success: true,
                 message: 'insert successfully',
@@ -186,11 +186,30 @@ app.post('/daily_domains', (req, res) => {
             error: err
         });
     });
-})
+});
 
-// app.listen(9999, () => {
-//     console.log('Listening on port 9999');
-// });
+app.post('/links/record', (req, res) => {
+    var urlObj = req.body;
+    console.log('Url object: ', urlObj);
+    var name = urlObj.url;
+    var startTime = moment(urlObj.startTime, 'D/M/YYYY h:m:s').format('DD/MM/YYYY hh:mm:ss');
+    var endTime = moment(urlObj.endTime, 'D/M/YYYY h:m:s').format('DD/MM/YYYY hh:mm:ss');
+    pool.query({
+        text: `INSERT INTO url_visit(name, startVisitAt, endVisitAt) VALUES($1, $2, $3)`,
+        values: [name, urlObj.startTime, endTime]
+    }).then(() => {
+        res.send({
+            success: true,
+            message: 'Add succefully'
+        });
+    }).catch((err) => {
+        res.send({
+            success: false,
+            message: 'Error occur when add url to history',
+            error: err
+        });
+    });
+});
 
 var server = https.createServer(certOptions, app, () => {
     console.log('Listening on port 9999');
