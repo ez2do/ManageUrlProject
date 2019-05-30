@@ -25,6 +25,7 @@
     "metascraper-title": "^5.1.0",
     "metascraper-url": "^5.1.0",
     "moment": "^2.24.0",
-    "pg": "^7.9.0"
+    "pg": "^7.9.0",
+    "url-exists": "^1.0.3"
   }
 }

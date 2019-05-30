@@ -21,82 +21,28 @@ const pool = new Pool({
     port: 5432
 });
 
-var postLink = async (targetUrl, domain_table, url_table, res) => {
+var postLink = async (targetUrl, url_table, url_info_table, res) => {
     try {
+        //put to url table
+        await pool.query({
+            text: `INSERT INTO ${url_table}(name) VALUES($1) ON CONFLICT DO NOTHING`,
+            values: [targetUrl]
+        });
+
         //get information from url
         var link = await got(targetUrl);
         var link_info = await metascraper({ html: link.body, url: link.url });
-        //get information from domain
-        var domain = await got(extractDomain(targetUrl));
-        var domain_info = await metascraper({ html: domain.body, url: domain.url });
-
-        //add domain to database
-        await pool.query({
-            text: `SELECT * FROM ${domain_table} WHERE name = $1`,
-            values: [domain_info.url]
-        }).then((result) => {
-            if (result.rowCount !== 0) {
-                console.log('Domain already in the database');
-                return false;   //stop insert
-            }
-            return true;   //insert
-        }).then((result) => {
-            if (result) {
-                pool.query({
-                    text: `INSERT INTO 
-                        ${domain_table}(name, title, logo_link, img_link, description, publisher)
-                        VALUES($1, $2, $3, $4, $5, $6)`,
-                    values: [domain_info.url, domain_info.title, domain_info.logo, domain_info.image,
-                    domain_info.description, domain_info.publisher]
-                });
-            }
-        }).catch((err) => {
-            console.log('Fail to insert domain\n', err);
-        });
-
-        //get id of domain
-        var domain_id;
-        await pool.query({
-            text: `SELECT id FROM ${domain_table} WHERE name = $1`,
-            values: [domain_info.url]
-        }).then((result) => {
-            domain_id = result.rows[0].id;
-        }).catch((err) => {
-            console.log('Can not get domain id\n', err);
-        });
 
         //check whether url already exists in the database
         await pool.query({
-            text: `SELECT * FROM ${url_table} WHERE url = $1`,
-            values: [link.url]
-        }).then((result) => {
-            if (result.rowCount !== 0) {
-                console.log('Url exists in the database');
-                res.send({
-                    success: true,
-                    exists: true
-                });
-                return false;   //stop insert
-            }
-            return true;    //do insert into table
-        }).then((result) => {
-            if (result) {
-                pool.query({
-                    text: `INSERT INTO 
-                                ${url_table}(url, title, logo_link, img_link, description, publisher, collection_id, domain_id)
-                                VALUES($1, $2, $3, $4, $5, $6, $7, $8)`,
-                    values: [link.url, link_info.title, link_info.logo, link_info.image, link_info.description,
-                    link_info.publisher, 1, domain_id]
-                }).then(() => {
-                    res.send(link_info);
-                }).catch((err) => {
-                    res.send({ success: false, error: err });
-                });
-            }
-        }).catch((err) => {
-            console.log('Fail in inserting url to database');
-            return res.send({ success: false, error: err });
-        });
+            text: `INSERT INTO 
+                        ${url_info_table}(url, title, logo_link, img_link, description, publisher)
+                        VALUES($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING`,
+            values: [link.url, link_info.title, link_info.logo, link_info.image, link_info.description,
+            link_info.publisher]
+        }).then(() => {
+            res.send(link_info);
+        })
     } catch (err) {
         console.log('Catch exception\n', err);
         return res.send({ success: false, error: err });
@@ -259,5 +205,38 @@ var updateCollection = (collection_table, collection_id, new_name, res) => {
     });
 };
 
-module.exports = { postLink, postCollection, getAll, getById, deleteById, getAllLinksOfCollection, 
-    updateCollectionOfALink, updateCollection };
+var addDailyDomain = async (domain, daily_domain_table, domain_table, res) => {
+    try {
+        //add daily domain
+        await pool.query({
+            text: `INSERT INTO ${daily_domain_table}(name, visitCount, duration, date)
+                VALUES($1, $2, $3, $4)`,
+            values: [domain.name, domain.visit, domain.duration, domain.date]
+        });
+        
+        //get information from domain
+        var domain = await got(extractDomain(domain.name));
+        var domain_info = await metascraper({ html: domain.body, url: domain.url });
+
+        //add domain to database
+        await pool.query({
+            text: `INSERT INTO 
+                ${domain_table}(name, title, logo_link, img_link, description, publisher)
+                VALUES($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING`,
+            values: [domain_info.url, domain_info.title, domain_info.logo, domain_info.image,
+            domain_info.description, domain_info.publisher]
+        }).then((result) => {
+            res.send(domain_info);
+        });
+    } catch(err){
+        res.send({
+            success: false,
+            message: 'Catch error when inserting domain'
+        })
+    }
+}
+
+module.exports = {
+    postLink, postCollection, getAll, getById, deleteById, getAllLinksOfCollection,
+    updateCollectionOfALink, updateCollection, addDailyDomain
+};

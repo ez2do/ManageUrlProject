@@ -7,6 +7,17 @@ const cors = require('cors');
 const moment = require('moment');
 const fs = require('fs');
 const path = require('path');
+const extractDomain = require('extract-domain');
+const got = require('got');
+const urlExists = require('url-exists');
+const metascraper = require('metascraper')([
+    require('metascraper-description')(),
+    require('metascraper-image')(),
+    require('metascraper-logo')(),
+    require('metascraper-publisher')(),
+    require('metascraper-title')(),
+    require('metascraper-url')()
+]);
 // const dotenv = require('dotenv');
 
 var certOptions = {
@@ -49,7 +60,11 @@ app.get('/links', (req, res) => {
 //add new link
 app.post('/links', (req, res) => {
     var targetUrl = req.body.url;
-    utils.postLink(targetUrl, 'domain_info', 'url_info', res);
+    urlExists(targetUrl, (err,exists) => {
+        if(exists){
+            utils.postLink(targetUrl, 'url', 'url_info', res);
+        }
+    });
 });
 
 //info about 1 link
@@ -154,61 +169,11 @@ app.get('/daily_domains/:date', (req, res) => {
 
 app.post('/daily_domains', (req, res) => {
     var domain = req.body.domain;
-    //get domain id
-    pool.query({
-        text: `SELECT id FROM domain_info WHERE name = $1`,
-        values: [domain.name]
-    }).then((result) => {
-        if (result.rowCount == 0) {
-            console.log('There is no such domain');
-            res.send({
-                success: false,
-                message: 'There is no such domain, it must be insert when inserting url'
-            })
-        } else {
-            console.log('result format:', result);
-            pool.query({
-                text: `INSERT INTO daily_domain(date, visitCount, duration, domain_id)
-                            VALUES($1, $2, $3, $4)`,
-                values: [domain.date, domain.visit, domain.duration, result.rows[0].id]
-            });
-            res.send({
-                success: true,
-                message: 'insert successfully',
-                rowCount: result.rowCount,
-                rows: result.rows
-            });
+    urlExists(domain.name, (err, exists) => {
+        if(exists){
+            utils.addDailyDomain(domain, 'daily_domain', 'domain_info', res);
         }
-    }).catch((err) => {
-        console.log('Catch an error\n', err);
-        res.send({
-            success: false,
-            error: err
-        });
-    });
-});
-
-app.post('/links/record', (req, res) => {
-    var urlObj = req.body;
-    console.log('Url object: ', urlObj);
-    var name = urlObj.url;
-    var startTime = moment(urlObj.startTime, 'D/M/YYYY h:m:s').format('DD/MM/YYYY hh:mm:ss');
-    var endTime = moment(urlObj.endTime, 'D/M/YYYY h:m:s').format('DD/MM/YYYY hh:mm:ss');
-    pool.query({
-        text: `INSERT INTO url_visit(name, startVisitAt, endVisitAt) VALUES($1, $2, $3)`,
-        values: [name, urlObj.startTime, endTime]
-    }).then(() => {
-        res.send({
-            success: true,
-            message: 'Add succefully'
-        });
-    }).catch((err) => {
-        res.send({
-            success: false,
-            message: 'Error occur when add url to history',
-            error: err
-        });
-    });
+    })
 });
 
 var server = https.createServer(certOptions, app, () => {
