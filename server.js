@@ -167,14 +167,24 @@ app.get('/daily_domains/:date', (req, res) => {
     });
 });
 
-app.post('/daily_domains', (req, res) => {
+app.post('/domains', (req, res) => {
     var domain = req.body.domain;
-    urlExists(domain.name, (err, exists) => {
+    urlExists(domain, (err, exists) => {
         if(exists){
-            utils.addDailyDomain(domain, 'daily_domain', 'domain_info', res);
+            utils.addDomain(domain, 'domain_info', res);
+        } else{
+            res.send({
+                success: false,
+                message: 'url is not exists'
+            });
         }
     })
 });
+
+app.post('/daily_domains', (req, res) => {
+    var domain = req.body.domain;
+    utils.addDailyDomain(domain, 'daily_domain', res);
+})
 
 var server = https.createServer(certOptions, app, () => {
     console.log('Listening on port 9999');

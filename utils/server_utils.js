@@ -205,17 +205,10 @@ var updateCollection = (collection_table, collection_id, new_name, res) => {
     });
 };
 
-var addDailyDomain = async (domain, daily_domain_table, domain_table, res) => {
+var addDomain = async (domain, domain_table, res) => {
     try {
-        //add daily domain
-        await pool.query({
-            text: `INSERT INTO ${daily_domain_table}(name, visitCount, duration, date)
-                VALUES($1, $2, $3, $4)`,
-            values: [domain.name, domain.visit, domain.duration, domain.date]
-        });
-        
         //get information from domain
-        var domain = await got(extractDomain(domain.name));
+        var domain = await got(extractDomain(domain));
         var domain_info = await metascraper({ html: domain.body, url: domain.url });
 
         //add domain to database
@@ -236,7 +229,25 @@ var addDailyDomain = async (domain, daily_domain_table, domain_table, res) => {
     }
 }
 
+var addDailyDomain = (domain, daily_domain_table, res) => {
+    pool.query({
+        text: `INSERT INTO ${daily_domain_table}(name, visitCount, duration, date)
+            VALUES($1, $2, $3, $4)`,
+        values: [domain.name, domain.visit, domain.duration, domain.date]
+    }).then((result) => {
+        res.send({
+            success: true,
+            message: 'add daily_domain successfully'
+        });
+    }).catch((err) => {
+        res.send({
+            success: false,
+            message: 'fail to add daily domain'
+        })
+    })
+}
+
 module.exports = {
     postLink, postCollection, getAll, getById, deleteById, getAllLinksOfCollection,
-    updateCollectionOfALink, updateCollection, addDailyDomain
+    updateCollectionOfALink, updateCollection, addDomain, addDailyDomain
 };
